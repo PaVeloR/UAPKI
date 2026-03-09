@@ -27,16 +27,25 @@ jobs:
         shell: pwsh
         run: |
           mkdir final_package
-          # 1. Шукаємо ВСІ .dll файли в усій папці build (рекурсивно)
-          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
           
-          # 2. Шукаємо ВСІ .exe файли (hostapp, test)
+          # 1. Копіюємо ядро (воно точно тут)
+          Copy-Item "build/Release/uapkic.dll" -Destination final_package -ErrorAction SilentlyContinue
+          
+          # 2. Копіюємо основну бібліотеку з її персональної папки
+          Copy-Item "build/library/uapki/Release/uapki.dll" -Destination final_package -ErrorAction SilentlyContinue
+          
+          # 3. Копіюємо утиліти (вони зазвичай в out або build/bin)
           Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination final_package
           
-          # 3. Додаємо залежності vcpkg (curl, ssl)
+          # 4. Додаємо залежності vcpkg (CURL, OpenSSL)
           Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_package -ErrorAction SilentlyContinue
           
-          # 4. Виводимо список того, що знайшли, прямо в лог GitHub (для контролю)
+          # 5. ПЕРЕВІРКА: якщо uapki.dll все ще немає, шукаємо її по всьому диску D:
+          if (!(Test-Path "final_package/uapki.dll")) {
+            Write-Host "Файл не знайдено за прямим шляхом, запускаю глобальний пошук..."
+            Get-ChildItem -Path D:/a/UAPKI/UAPKI/build -Filter "uapki.dll" -Recurse | Copy-Item -Destination final_package
+          }
+          
           ls final_package
       - name: Prepare Deployment Folder
         shell: pwsh
