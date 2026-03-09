@@ -23,7 +23,21 @@ jobs:
         # Ми додаємо "continue-on-error", бо знаємо, що помилка лише в копіюванні
         continue-on-error: true
         run: cmake --build build --config Release
-
+      - name: Prepare Artifacts
+        shell: pwsh
+        run: |
+          mkdir final_package
+          # 1. Шукаємо ВСІ .dll файли в усій папці build (рекурсивно)
+          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
+          
+          # 2. Шукаємо ВСІ .exe файли (hostapp, test)
+          Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination final_package
+          
+          # 3. Додаємо залежності vcpkg (curl, ssl)
+          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_package -ErrorAction SilentlyContinue
+          
+          # 4. Виводимо список того, що знайшли, прямо в лог GitHub (для контролю)
+          ls final_package
       - name: Prepare Deployment Folder
         shell: pwsh
         run: |
