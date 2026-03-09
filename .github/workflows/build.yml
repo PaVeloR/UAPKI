@@ -1,4 +1,4 @@
-name: Build UAPKI DLL
+name: Build UAPKI Full
 on: [push, workflow_dispatch]
 
 jobs:
@@ -14,52 +14,32 @@ jobs:
         run: vcpkg install curl:x86-windows openssl:x86-windows
 
       - name: Configure CMake
+        # Повертаємо -S library, бо там лежить CMakeLists.txt
         run: |
-          cmake -S . -B build `
+          cmake -S library -B build `
           -G "Visual Studio 17 2022" -A Win32 `
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
-          -DBUILD_UAPKI_LIB=ON `
-          -DADD_UAPKI_LIB=ON
+          -DBUILD_SHARED_LIBS=ON
+
       - name: Build
-        # Ми додаємо "continue-on-error", бо знаємо, що помилка лише в копіюванні
         continue-on-error: true
+        # Збираємо ВСЕ
         run: cmake --build build --config Release
-      - name: Prepare Artifacts
+
+      - name: Find Everything
         shell: pwsh
         run: |
-          mkdir final_package
-          
-          # 1. Копіюємо ядро (воно точно тут)
-          Copy-Item "build/Release/uapkic.dll" -Destination final_package -ErrorAction SilentlyContinue
-          
-          # 2. Копіюємо основну бібліотеку з її персональної папки
-          Copy-Item "build/library/uapki/Release/uapki.dll" -Destination final_package -ErrorAction SilentlyContinue
-          
-          # 3. Копіюємо утиліти (вони зазвичай в out або build/bin)
-          Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination final_package
-          
-          # 4. Додаємо залежності vcpkg (CURL, OpenSSL)
-          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_package -ErrorAction SilentlyContinue
-          
-          # 5. ПЕРЕВІРКА: якщо uapki.dll все ще немає, шукаємо її по всьому диску D:
-          if (!(Test-Path "final_package/uapki.dll")) {
-            Write-Host "Файл не знайдено за прямим шляхом, запускаю глобальний пошук..."
-            Get-ChildItem -Path D:/a/UAPKI/UAPKI/build -Filter "uapki.dll" -Recurse | Copy-Item -Destination final_package
-          }
-          
-          ls final_package
-      - name: Prepare Deployment Folder
-        shell: pwsh
-        run: |
-          mkdir final_bin
-          # Параметр -Recurse змусить скрипт зайти в усі папки (uapki, uapkic, hostapp)
-          # і витягнути звідти ВСІ .dll та .exe
-          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_bin
-          Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination final_bin
-          # Копіюємо залежності vcpkg
-          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_bin -ErrorAction SilentlyContinue
+          mkdir final_pack
+          # Шукаємо ВСІ dll та exe по всьому диску D:
+          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.dll" -Recurse | Copy-Item -Destination final_pack
+          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.exe" -Recurse | Copy-Item -Destination final_pack
+          # Додаємо залежності vcpkg
+          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_pack -ErrorAction SilentlyContinue
+          # Виводимо список у лог - це момент істини
+          ls final_pack
+
       - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
-          name: UAPKI_Final_Package
-          path: final_bin/
+          name: UAPKI_Final_Attempt
+          path: final_pack/
