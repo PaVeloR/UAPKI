@@ -19,51 +19,34 @@ jobs:
           -G "Visual Studio 17 2022" -A Win32 `
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
           -DVCPKG_TARGET_TRIPLET=x86-windows `
-          -DBUILD_SHARED_LIBS=ON `
-          -Wdev --debug-output
-          
+          -DBUILD_SHARED_LIBS=ON
+
       - name: Build
+        id: build_step
         continue-on-error: true
-        # Збираємо ВСЕ
         run: cmake --build build --config Release
 
-      - name: Prepare Artifacts
+      - name: Find and Collect Everything
+        if: always()
         shell: pwsh
         run: |
-          mkdir final_package
-          # 1. Шукаємо по всьому дереву build
-          Write-Host "Шукаємо DLL у папці build..."
-          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
+          mkdir final_pack -ErrorAction SilentlyContinue
           
-          # 2. Шукаємо у папці library (де дерево, що ти показував)
-          Write-Host "Шукаємо DLL у папці library..."
-          Get-ChildItem -Path library -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
-
-          # 3. Перевіряємо папку out/win32, яку створює сам CMake
-          if (Test-Path "library/out/win32") {
-            Write-Host "Знайдено папку out/win32, копіюємо..."
-            Copy-Item "library/out/win32/*" -Destination final_package -Recurse
-          }
-
-          # 4. Додаємо залежності vcpkg
-          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_package -ErrorAction SilentlyContinue
+          # 1. Збираємо всі DLL та EXE, ігноруючи папку призначення та помилки доступу
+          Write-Host "Починаю глобальний пошук файлів..."
+          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.dll" -Recurse | Where-Object { $_.FullName -notmatch "final_pack" } | Copy-Item -Destination final_pack -Force -ErrorAction SilentlyContinue
+          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.exe" -Recurse | Where-Object { $_.FullName -notmatch "final_pack" } | Copy-Item -Destination final_pack -Force -ErrorAction SilentlyContinue
           
-          ls final_package
-      
-      - name: Find Everything
-        shell: pwsh
-        run: |
-          mkdir final_pack
-          # Шукаємо ВСІ dll та exe по всьому диску D:
-          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.dll" -Recurse | Copy-Item -Destination final_pack
-          Get-ChildItem -Path D:\a\UAPKI\UAPKI -Filter "*.exe" -Recurse | Copy-Item -Destination final_pack
-          # Додаємо залежності vcpkg
-          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_pack -ErrorAction SilentlyContinue
-          # Виводимо список у лог - це момент істини
-          ls final_pack
+          # 2. Додаємо системні залежності vcpkg (CURL, OpenSSL)
+          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_pack -Force -ErrorAction SilentlyContinue
+          
+          # 3. Виводимо список знайденого для діагностики
+          Write-Host "--- ФІНАЛЬНИЙ СПИСОК ЗНАЙДЕНИХ ФАЙЛІВ ---"
+          Get-ChildItem final_pack | Select-Object Name, @{Name="Size(KB)";Expression={$_.Length / 1KB}} | Format-Table -AutoSize
 
       - name: Upload Result
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: UAPKI_Final_Attempt
+          name: UAPKI_Build_Package
           path: final_pack/
