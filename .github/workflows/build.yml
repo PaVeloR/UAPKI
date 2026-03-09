@@ -14,18 +14,42 @@ jobs:
         run: vcpkg install curl:x86-windows openssl:x86-windows
 
       - name: Configure CMake
-        # Повертаємо -S library, бо там лежить CMakeLists.txt
         run: |
           cmake -S library -B build `
           -G "Visual Studio 17 2022" -A Win32 `
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
-          -DBUILD_SHARED_LIBS=ON
-
+          -DVCPKG_TARGET_TRIPLET=x86-windows `
+          -DBUILD_SHARED_LIBS=ON `
+          -Wdev --debug-output
+          
       - name: Build
         continue-on-error: true
         # Збираємо ВСЕ
         run: cmake --build build --config Release
 
+      - name: Prepare Artifacts
+        shell: pwsh
+        run: |
+          mkdir final_package
+          # 1. Шукаємо по всьому дереву build
+          Write-Host "Шукаємо DLL у папці build..."
+          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
+          
+          # 2. Шукаємо у папці library (де дерево, що ти показував)
+          Write-Host "Шукаємо DLL у папці library..."
+          Get-ChildItem -Path library -Filter "*.dll" -Recurse | Copy-Item -Destination final_package
+
+          # 3. Перевіряємо папку out/win32, яку створює сам CMake
+          if (Test-Path "library/out/win32") {
+            Write-Host "Знайдено папку out/win32, копіюємо..."
+            Copy-Item "library/out/win32/*" -Destination final_package -Recurse
+          }
+
+          # 4. Додаємо залежності vcpkg
+          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_package -ErrorAction SilentlyContinue
+          
+          ls final_package
+      
       - name: Find Everything
         shell: pwsh
         run: |
