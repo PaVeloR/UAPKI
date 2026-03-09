@@ -27,14 +27,13 @@ jobs:
       - name: Prepare Deployment Folder
         shell: pwsh
         run: |
-          mkdir deploy_final
-          # Шукаємо ВСІ dll, які наплодив компілятор, і згрібаємо в одну папку
-          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination deploy_final
-          Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination deploy_final
-          # Додаємо залежності vcpkg
-          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination deploy_final -ErrorAction SilentlyContinue
-          # Перевіряємо, що ми знайшли (це з'явиться в логах)
-          ls deploy_final
+          mkdir final_bin
+          # Параметр -Recurse змусить скрипт зайти в усі папки (uapki, uapkic, hostapp)
+          # і витягнути звідти ВСІ .dll та .exe
+          Get-ChildItem -Path build -Filter "*.dll" -Recurse | Copy-Item -Destination final_bin
+          Get-ChildItem -Path build -Filter "*.exe" -Recurse | Copy-Item -Destination final_bin
+          # Копіюємо залежності vcpkg
+          Copy-Item "C:/vcpkg/installed/x86-windows/bin/*.dll" -Destination final_bin -ErrorAction SilentlyContinue
       - name: Upload Result
         uses: actions/upload-artifact@v4
         with:
