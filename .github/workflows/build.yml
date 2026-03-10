@@ -36,23 +36,18 @@ jobs:
           mkdir build/out -Force
           mkdir out/win32 -Force
           
-          # Прописуємо шляхи в системні змінні для компилятора
-          $env:INCLUDE = "C:/vcpkg/installed/x86-windows/include;" + $env:INCLUDE
-          $env:LIB = "C:/vcpkg/installed/x86-windows/lib;" + $env:LIB
-          
+          # Передаємо шляхи прямо в прапорці компилятора (С та С++)
           cmake -S library -B build `
           -G "Visual Studio 17 2022" -A Win32 `
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
           -DVCPKG_TARGET_TRIPLET=x86-windows `
-          -DBUILD_SHARED_LIBS=ON
+          -DBUILD_SHARED_LIBS=ON `
+          -DCMAKE_C_FLAGS="/I C:/vcpkg/installed/x86-windows/include" `
+          -DCMAKE_CXX_FLAGS="/I C:/vcpkg/installed/x86-windows/include"
 
       - name: Build
-        shell: pwsh
-        run: |
-          $env:INCLUDE = "C:/vcpkg/installed/x86-windows/include;" + $env:INCLUDE
-          $env:LIB = "C:/vcpkg/installed/x86-windows/lib;" + $env:LIB
-          cmake --build build --config Release
-
+        run: cmake --build build --config Release
+        
       - name: Find and Collect Everything
         if: always()
         shell: pwsh
