@@ -40,6 +40,13 @@ if(${UNIX})
 endif()
 
 
+# --- НАШ ДІАГНОСТИЧНИЙ БЛОК ---
+message(STATUS "DEBUG: TARGET_FILE is $<TARGET_FILE:uapki-hostapp>")
+message(STATUS "DEBUG: Current binary dir: ${CMAKE_CURRENT_BINARY_DIR}")
+message(STATUS "DEBUG: Attempting to copy to: ${CMAKE_CURRENT_BINARY_DIR}/../out/")
+message(STATUS "DEBUG: Attempting to copy to: ${CMAKE_CURRENT_BINARY_DIR}/../../${OUT_DIR}/")
+# ------------------------------
+
 add_custom_command(TARGET uapki-hostapp POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:uapki-hostapp> ../out/
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:uapki-hostapp> ../../${OUT_DIR}/
