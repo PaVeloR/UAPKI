@@ -36,15 +36,16 @@ jobs:
           mkdir build/out -Force
           mkdir out/win32 -Force
           
-          # Передаємо шляхи прямо в прапорці компилятора (С та С++)
           cmake -S library -B build `
           -G "Visual Studio 17 2022" -A Win32 `
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
           -DVCPKG_TARGET_TRIPLET=x86-windows `
           -DBUILD_SHARED_LIBS=ON `
-          -DCMAKE_C_FLAGS="/I C:/vcpkg/installed/x86-windows/include" `
-          -DCMAKE_CXX_FLAGS="/I C:/vcpkg/installed/x86-windows/include"
-
+          -DCMAKE_C_FLAGS="/I C:/vcpkg/installed/x86-windows/include /D CURL_STATICLIB" `
+          -DCMAKE_CXX_FLAGS="/I C:/vcpkg/installed/x86-windows/include /D CURL_STATICLIB" `
+          -Dcurl_DIR="C:/vcpkg/installed/x86-windows/share/curl" `
+          -DOpenSSL_DIR="C:/vcpkg/installed/x86-windows/share/openssl"
+          
       - name: Build
         run: cmake --build build --config Release
         
