@@ -15,7 +15,7 @@ jobs:
 
       - name: Configure CMake
         run: |
-          # Створюємо папки для копіювання
+          # Створюємо папки, щоб POST_BUILD команди не падали
           mkdir build/out -Force
           mkdir out/win32 -Force
           
@@ -24,9 +24,9 @@ jobs:
           -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
           -DVCPKG_TARGET_TRIPLET=x86-windows `
           -DBUILD_SHARED_LIBS=ON `
-          -DCMAKE_PREFIX_PATH="C:/vcpkg/installed/x86-windows" `
-          -Dcurl_DIR="C:/vcpkg/installed/x86-windows/share/curl" `
-          -DOpenSSL_DIR="C:/vcpkg/installed/x86-windows/share/openssl"
+          -DCMAKE_INCLUDE_PATH="C:/vcpkg/installed/x86-windows/include" `
+          -DCMAKE_LIBRARY_PATH="C:/vcpkg/installed/x86-windows/lib" `
+          -Dcurl_DIR="C:/vcpkg/installed/x86-windows/share/curl"
           
       - name: Build All
         # Тепер, коли папки існують, ALL_BUILD не має падати на копіюванні
