@@ -43,8 +43,8 @@ jobs:
           -DBUILD_SHARED_LIBS=ON `
           -DCMAKE_C_FLAGS="/I C:/vcpkg/installed/x86-windows/include /D CURL_STATICLIB" `
           -DCMAKE_CXX_FLAGS="/I C:/vcpkg/installed/x86-windows/include /D CURL_STATICLIB" `
-          -Dcurl_DIR="C:/vcpkg/installed/x86-windows/share/curl" `
-          -DOpenSSL_DIR="C:/vcpkg/installed/x86-windows/share/openssl"
+          -DCMAKE_EXE_LINKER_FLAGS="ws2_32.lib crypt32.lib advapi32.lib" `
+          -DCMAKE_SHARED_LINKER_FLAGS="ws2_32.lib crypt32.lib advapi32.lib"
           
       - name: Build
         run: cmake --build build --config Release
