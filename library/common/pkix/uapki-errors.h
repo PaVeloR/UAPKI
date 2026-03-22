@@ -105,6 +105,7 @@
 #define RET_UAPKI_INVALID_COUNT_ITEMS                                 (UAPKI_ERROR_NAME_CODE | 0x00000038)
 #define RET_UAPKI_INVALID_DIGEST                                      (UAPKI_ERROR_NAME_CODE | 0x00000039)
 #define RET_UAPKI_OTHER_RECIPIENT                                     (UAPKI_ERROR_NAME_CODE | 0x0000003A)
+#define RET_UAPKI_DIGEST_CONTEXT_NOT_INITIALIZED                      (UAPKI_ERROR_NAME_CODE | 0x0000003B)
 
 
 #define RET_UAPKI_CERT_STORE_LOAD_ERROR                               (UAPKI_ERROR_NAME_CODE | 0x00000040)
