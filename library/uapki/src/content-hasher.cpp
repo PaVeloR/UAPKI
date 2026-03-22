@@ -1,30 +1,3 @@
-/*
- * Copyright (c) 2021, The UAPKI Project Authors.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * 1. Redistributions of source code must retain the above copyright
- * notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- * notice, this list of conditions and the following disclaimer in the
- * documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
- * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED
- * TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
- * TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
- * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- */
-
 #define FILE_MARKER "uapki/content-hasher.cpp"
 
 #include "content-hasher.h"
@@ -53,6 +26,7 @@ namespace UapkiNS {
 ContentHasher::ContentHasher (void)
     : m_SourceType(SourceType::UNDEFINED)
     , m_HashAlgo(HASH_ALG_UNDEFINED)
+    , m_HashCtx(nullptr)
     , m_Bytes(nullptr)
     , m_AutoReleaseBytes(false)
     , m_MemoryPtr(nullptr)
@@ -100,16 +74,75 @@ int ContentHasher::digest (
     return ret;
 }
 
+int ContentHasher::Start (
+        const HashAlg hashAlgo
+)
+{
+    if (hashAlgo == HASH_ALG_UNDEFINED) {
+        return RET_UAPKI_INVALID_PARAMETER;
+    }
+
+    resetHashCtx();
+    m_Value.clear();
+
+    m_HashCtx = hash_alloc(hashAlgo);
+    if (!m_HashCtx) {
+        m_HashAlgo = HASH_ALG_UNDEFINED;
+        return RET_UAPKI_GENERAL_ERROR;
+    }
+
+    m_HashAlgo = hashAlgo;
+
+    const int ret = updateCtx(m_HashCtx);
+    if (ret != RET_OK) {
+        resetHashCtx();
+        m_HashAlgo = HASH_ALG_UNDEFINED;
+        return ret;
+    }
+
+    resetContent();
+    return RET_OK;
+}
+
+int ContentHasher::Update (void)
+{
+    if (!m_HashCtx) {
+        return RET_UAPKI_DIGEST_CONTEXT_NOT_INITIALIZED;
+    }
+
+    const int ret = updateCtx(m_HashCtx);
+    if (ret != RET_OK) {
+        resetHashCtx();
+        m_HashAlgo = HASH_ALG_UNDEFINED;
+        return ret;
+    }
+
+    resetContent();
+    return RET_OK;
+}
+
+int ContentHasher::Finalize (void)
+{
+    if (!m_HashCtx) {
+        return RET_UAPKI_DIGEST_CONTEXT_NOT_INITIALIZED;
+    }
+
+    int ret = hash_final(m_HashCtx, &m_Value);
+    resetHashCtx();
+    if (ret != RET_OK) {
+        m_HashAlgo = HASH_ALG_UNDEFINED;
+        return ret;
+    }
+
+    return RET_OK;
+}
+
 void ContentHasher::reset (void)
 {
-    if (m_AutoReleaseBytes && m_Bytes) {
-        ba_free(m_Bytes);
-        m_Bytes = nullptr;
-    }
-    m_Filename.clear();
-    m_MemoryPtr = nullptr;
-    m_MemorySize = 0;
-    m_SourceType = SourceType::UNDEFINED;
+    resetContent();
+    resetHashCtx();
+    m_HashAlgo = HASH_ALG_UNDEFINED;
+    m_Value.clear();
 }
 
 int ContentHasher::setContent (
@@ -217,10 +250,99 @@ int ContentHasher::digestMemory (
     return ::hash(hashAlgo, &ba_local, &m_Value);
 }
 
+int ContentHasher::updateCtx (
+        HashCtx* hashCtx
+)
+{
+    if (!hashCtx) {
+        return RET_UAPKI_INVALID_PARAMETER;
+    }
+
+    switch (m_SourceType) {
+    case SourceType::UNDEFINED:
+        return RET_OK;
+
+    case SourceType::BYTEARRAY:
+        return hash_update(hashCtx, m_Bytes);
+
+    case SourceType::FILE:
+        return updateFile(hashCtx);
+
+    case SourceType::MEMORY:
+        return updateMemory(hashCtx);
+
+    default:
+        return RET_UAPKI_INVALID_PARAMETER;
+    }
+}
+
+int ContentHasher::updateFile (
+        HashCtx* hashCtx
+)
+{
+    int ret = RET_OK;
+    ByteArray* ba_data = nullptr;
+    FILE* f = nullptr;
+
+    f = fopen_utf8(m_Filename.c_str(), 0);
+    if (!f) {
+        SET_ERROR(RET_UAPKI_FILE_OPEN_ERROR);
+    }
+
+    CHECK_NOT_NULL(ba_data = ba_alloc_by_len(FILE_BLOCK_SIZE));
+
+    do {
+        ba_data->len = fread(ba_get_buf(ba_data), 1, FILE_BLOCK_SIZE, f);
+        DO(hash_update(hashCtx, ba_data));
+    } while (ba_data->len == FILE_BLOCK_SIZE);
+
+    if (ferror(f)) {
+        SET_ERROR(RET_UAPKI_FILE_READ_ERROR);
+    }
+
+cleanup:
+    if (f) {
+        fclose(f);
+    }
+    ba_free(ba_data);
+    return ret;
+}
+
+int ContentHasher::updateMemory (
+        HashCtx* hashCtx
+)
+{
+    ByteArray ba_local = { m_MemoryPtr, m_MemorySize };
+    return hash_update(hashCtx, &ba_local);
+}
+
+void ContentHasher::resetContent (void)
+{
+    if (m_AutoReleaseBytes && m_Bytes) {
+        ba_free(m_Bytes);
+    }
+
+    m_Bytes = nullptr;
+    m_AutoReleaseBytes = false;
+    m_Filename.clear();
+    m_MemoryPtr = nullptr;
+    m_MemorySize = 0;
+    m_SourceType = SourceType::UNDEFINED;
+}
+
+void ContentHasher::resetHashCtx (void)
+{
+    if (m_HashCtx) {
+        hash_free(m_HashCtx);
+        m_HashCtx = nullptr;
+    }
+}
+
 void ContentHasher::setSourceType (
         const SourceType sourceType
 )
 {
+    resetContent();
     m_SourceType = sourceType;
     m_HashAlgo = HASH_ALG_UNDEFINED;
     m_Value.clear();
