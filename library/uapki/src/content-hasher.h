@@ -5,6 +5,7 @@
 #include "uapki-ns.h"
 #include "hash.h"
 #include <string>
+#include <cstdint>
 
 
 namespace UapkiNS {
@@ -30,7 +31,9 @@ private:
                 m_MemoryPtr;
     size_t      m_MemorySize;
     SmartBA     m_Value;
-
+    uint64_t    m_FileBlockOffset;
+    uint64_t    m_FileBlockLength;
+	
 public:
     ContentHasher (void);
     ~ContentHasher (void);
@@ -58,7 +61,12 @@ public:
         const uint8_t* ptr,
         const size_t size
     );
-
+    int setContent (
+        const char* filename,
+        const uint64_t offset,
+        const uint64_t length
+    );
+	
 public:
     const ByteArray* getContentBytes (void) const {
         return m_Bytes;
