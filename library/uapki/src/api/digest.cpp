@@ -83,6 +83,37 @@ static bool has_content_params (
     );
 }
 
+static bool json_get_u64_param (
+        JSON_Object* joParams,
+        const char* name,
+        const uint64_t defaultValue,
+        uint64_t& value
+)
+{
+    value = defaultValue;
+
+    if (!json_object_has_value(joParams, name)) {
+        return true;
+    }
+
+    if (!ParsonHelper::jsonObjectHasValue(joParams, name, JSONNumber)) {
+        return false;
+    }
+
+    const double fval = json_object_get_number(joParams, name);
+    if (fval < 0) {
+        return false;
+    }
+
+    const uint64_t uval = (uint64_t)fval;
+    if ((double)uval != fval) {
+        return false;
+    }
+
+    value = uval;
+    return true;
+}
+
 static int set_content_from_params (
         ContentHasher& contentHasher,
         JSON_Object* joParams
@@ -93,7 +124,21 @@ static int set_content_from_params (
     }
 
     if (ParsonHelper::jsonObjectHasValue(joParams, "file", JSONString)) {
-        return contentHasher.setContent(json_object_get_string(joParams, "file"));
+        uint64_t file_block_offset = 0;
+        uint64_t file_block_length = UINT64_MAX;
+
+        if (!json_get_u64_param(joParams, "fileBlockOffset", 0, file_block_offset)) {
+            return RET_UAPKI_INVALID_PARAMETER;
+        }
+        if (!json_get_u64_param(joParams, "fileBlockLength", UINT64_MAX, file_block_length)) {
+            return RET_UAPKI_INVALID_PARAMETER;
+        }
+
+        return contentHasher.setContent(
+            json_object_get_string(joParams, "file"),
+            file_block_offset,
+            file_block_length
+        );
     }
 
     if (
@@ -114,7 +159,6 @@ static int set_content_from_params (
 
     return RET_UAPKI_INVALID_PARAMETER;
 }
-
 
 int uapki_digest (JSON_Object* joParams, JSON_Object* joResult)
 {
