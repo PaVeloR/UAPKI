@@ -54,7 +54,6 @@ static bool json_get_bool_param (
 )
 {
     isPresent = false;
-    value = false;
 
     if (!json_object_has_value(joParams, name)) {
         return true;
