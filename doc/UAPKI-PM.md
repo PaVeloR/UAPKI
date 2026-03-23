@@ -11,22 +11,22 @@
 
 ### Description
 
-Calculates hash of provided content.
+Обчислює хеш наданого контенту.
 
 ---
 
 ### Parameters
 
-| Name              | Type    | Required | Default        | Description |
-|-------------------|---------|----------|----------------|------------|
-| hashAlgo          | string  | yes      | —              | Hash algorithm OID |
-| bytes             | base64  | no       | —              | Data buffer |
-| file              | string  | no       | —              | File path |
-| ptr + size        | hex+num | no       | —              | Memory pointer |
-| DoUpdate          | bool    | no       | false          | Continue existing digest |
-| DoFinalize        | bool    | no       | true           | Finalize digest |
-| fileBlockOffset   | uint64  | no       | 0              | File offset |
-| fileBlockLength   | uint64  | no       | UINT64_MAX     | Length of file block |
+| Параметр          |          Тип | Обов’язковий | За замовчуванням | Опис                                              |
+| ----------------- | -----------: | :----------: | ---------------: | ------------------------------------------------- |
+| `hashAlgo`        |       string |     так*     |                — | OID алгоритму хешування                           |
+| `bytes`           |       base64 |      ні      |                — | Дані у вигляді base64                             |
+| `file`            |       string |      ні      |                — | Шлях до файла                                     |
+| `ptr` + `size`    | hex + number |      ні      |                — | Вказівник на пам’ять і розмір                     |
+| `DoUpdate`        |         bool |      ні      |          `false` | Продовжити вже ініціалізований контекст хешування |
+| `DoFinalize`      |         bool |      ні      |           `true` | Завершити обчислення хешу                         |
+| `fileBlockOffset` |       uint64 |      ні      |              `0` | Зміщення від початку файла                        |
+| `fileBlockLength` |       uint64 |      ні      |     `UINT64_MAX` | Довжина блока файла                               |
 
 ---
 
@@ -38,8 +38,8 @@ DoUpdate = false
 DoFinalize = true
 
 
-- Computes hash immediately
-- Returns `bytes`
+- Обчислює хеш негайно
+- Повертає `байти`
 
 ---
 
@@ -49,8 +49,8 @@ DoUpdate = false
 DoFinalize = false
 
 
-- Starts new digest context
-- No result returned
+- Запускає новий контекст дайджесту
+- Результатів не повернуто
 
 ---
 
@@ -60,8 +60,8 @@ DoUpdate = true
 DoFinalize = false
 
 
-- Adds data to existing digest
-- Requires initialized context
+- Додає дані до існуючого дайджесту
+- Потрібен ініціалізований контекст
 
 ---
 
@@ -71,21 +71,21 @@ DoUpdate = true
 DoFinalize = true
 
 
-- Finalizes digest
-- Returns `bytes`
+- Завершує дайджест
+- Повертає `байти`
 
 ---
 
 ### File slicing
 
-If `fileBlockOffset` and `fileBlockLength` are used:
+Якщо використовуються `fileBlockOffset` та `fileBlockLength`:
 
-- Only specified file range is processed
-- Out-of-range is NOT an error
-- May process 0 bytes
-- Default:
-  - offset = 0
-  - length = UINT64_MAX (whole file)
+- Обробляється лише вказаний діапазон файлів
+- Вихід за межі діапазону НЕ є помилкою
+- Може обробити 0 байтів
+- За замовчуванням:
+- offset = 0
+- length = UINT64_MAX (весь файл)
 
 ---
 
@@ -103,7 +103,19 @@ If `fileBlockOffset` and `fileBlockLength` are used:
 {
   "method": "DIGEST",
   "parameters": {
-    "hashAlgo": "2.16.840.1.101.3.4.2.1",
-    "file": "test.bin"
+    "file": "С:/xx.pdf",
+    "fileBlockOffset": 100,
+    "fileBlockLength": 200,
+    "DoUpdate": true,
+    "DoFinalize": false
   }
 }
+
+Що відбувається:
+
+- використовується вже ініціалізований контекст
+- до нього додаються байти файла з діапазону [100, 300)
+- hashAlgo вказувати не можна
+- bytes у result не повертається (бо вказано що це ше не фінал 
+Увага:
+При DoUpdate=true параметри hashAlgo і signAlgo заборонені.
