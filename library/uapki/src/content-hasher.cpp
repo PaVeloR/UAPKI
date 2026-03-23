@@ -423,7 +423,6 @@ void ContentHasher::setSourceType (
         const SourceType sourceType
 )
 {
-    resetContent();
     m_SourceType = sourceType;
     m_HashAlgo = HASH_ALG_UNDEFINED;
     m_Value.clear();
