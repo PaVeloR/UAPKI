@@ -30,9 +30,9 @@
 
 ---
 
-### Behavior
+### Поведінка
 
-#### One-shot (default)
+#### One-shot (за замовчуванням)
 
 DoUpdate = false
 DoFinalize = true
@@ -76,7 +76,7 @@ DoFinalize = true
 
 ---
 
-### File slicing
+### Нарізка файлів
 
 Якщо використовуються `fileBlockOffset` та `fileBlockLength`:
 
@@ -89,7 +89,7 @@ DoFinalize = true
 
 ---
 
-### Errors
+### Помилки
 
 | Code | Name |
 |------|------|
@@ -97,7 +97,7 @@ DoFinalize = true
 
 ---
 
-### Example
+### Приклади
 
 ```json
 {
@@ -110,13 +110,12 @@ DoFinalize = true
     "DoFinalize": false
   }
 }
+```
 
----
-
-Що відбувається:
+### Що відбувається:
 
 - використовується вже ініціалізований контекст
-- до нього додаються байти файла з діапазону [100, 300)
+- до нього додаються байти файла з діапазону [100, 300]
 - hashAlgo вказувати не можна
 - bytes у result не повертається (бо вказано що це ше не фінал 
 Увага:
