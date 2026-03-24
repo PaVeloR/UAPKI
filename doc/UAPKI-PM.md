@@ -28,6 +28,8 @@
 | `fileBlockOffset` |       uint64 |      ні      |              `0` | Зміщення від початку файла                        |
 | `fileBlockLength` |       uint64 |      ні      |     `UINT64_MAX` | Довжина блока файла                               |
 
+*Обов'язковий коли DoUpdate false коли DoUpdate true заборонений
+
 ---
 
 ### Поведінка
